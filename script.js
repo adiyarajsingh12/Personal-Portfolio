@@ -1,3 +1,31 @@
+// Dark Mode Toggle
+const themeToggle = document.getElementById('themeToggle');
+const themeIcon = document.getElementById('themeIcon');
+const html = document.documentElement;
+
+// Check for saved theme preference or default to light mode
+const currentTheme = localStorage.getItem('theme') || 'light';
+html.setAttribute('data-theme', currentTheme);
+updateThemeIcon(currentTheme);
+
+// Theme toggle functionality
+themeToggle.addEventListener('click', () => {
+    const currentTheme = html.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    
+    html.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    updateThemeIcon(newTheme);
+});
+
+function updateThemeIcon(theme) {
+    if (theme === 'dark') {
+        themeIcon.textContent = '☀️';
+    } else {
+        themeIcon.textContent = '🌙';
+    }
+}
+
 // Mobile Navigation Toggle
 const hamburger = document.getElementById('hamburger');
 const navMenu = document.getElementById('navMenu');
@@ -160,36 +188,75 @@ window.addEventListener('load', () => {
     }, 100);
 });
 
-// Contact Form Handling
+// Contact Form Handling with Web3Forms
 const contactForm = document.getElementById('contactForm');
 
 if (contactForm) {
-    contactForm.addEventListener('submit', (e) => {
+    contactForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        // Get form values
-        const formData = {
-            name: document.getElementById('name').value,
-            email: document.getElementById('email').value,
-            subject: document.getElementById('subject').value,
-            message: document.getElementById('message').value
-        };
-        
-        // Show success message
+        // Show loading state
         const submitButton = contactForm.querySelector('.btn-submit');
         const originalText = submitButton.textContent;
         
         submitButton.textContent = 'Sending...';
         submitButton.disabled = true;
         
-        // Simulate form submission (replace with actual form submission logic)
-        setTimeout(() => {
-            // Show success message
-            const successMessage = document.createElement('div');
-            successMessage.className = 'form-message success';
-            successMessage.textContent = 'Thank you! Your message has been sent successfully.';
-            successMessage.style.cssText = `
-                background: #10b981;
+        // Remove any existing messages
+        const existingMessage = contactForm.querySelector('.form-message');
+        if (existingMessage) {
+            existingMessage.remove();
+        }
+        
+        // Get form data
+        const formData = new FormData(contactForm);
+        
+        try {
+            // Submit form to Web3Forms
+            const response = await fetch('https://api.web3forms.com/submit', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                // Show success message
+                const successMessage = document.createElement('div');
+                successMessage.className = 'form-message success';
+                successMessage.textContent = 'Thank you! Your message has been sent successfully. I will get back to you soon!';
+                successMessage.style.cssText = `
+                    background: #10b981;
+                    color: white;
+                    padding: 1rem;
+                    border-radius: 8px;
+                    margin-top: 1rem;
+                    text-align: center;
+                    font-weight: 500;
+                    animation: fadeIn 0.5s ease;
+                `;
+                
+                contactForm.appendChild(successMessage);
+                
+                // Reset form
+                contactForm.reset();
+                submitButton.textContent = originalText;
+                submitButton.disabled = false;
+                
+                // Remove success message after 5 seconds
+                setTimeout(() => {
+                    successMessage.remove();
+                }, 5000);
+            } else {
+                throw new Error(result.message || 'Failed to send message');
+            }
+        } catch (error) {
+            // Show error message
+            const errorMessage = document.createElement('div');
+            errorMessage.className = 'form-message error';
+            errorMessage.textContent = 'Sorry, there was an error sending your message. Please try again or contact me directly at adityarajput9151@gmail.com';
+            errorMessage.style.cssText = `
+                background: #ef4444;
                 color: white;
                 padding: 1rem;
                 border-radius: 8px;
@@ -199,21 +266,18 @@ if (contactForm) {
                 animation: fadeIn 0.5s ease;
             `;
             
-            contactForm.appendChild(successMessage);
+            contactForm.appendChild(errorMessage);
             
-            // Reset form
-            contactForm.reset();
             submitButton.textContent = originalText;
             submitButton.disabled = false;
             
-            // Remove success message after 5 seconds
+            // Remove error message after 7 seconds
             setTimeout(() => {
-                successMessage.remove();
-            }, 5000);
+                errorMessage.remove();
+            }, 7000);
             
-            // In a real application, you would send the data to a server here
-            console.log('Form submitted:', formData);
-        }, 1500);
+            console.error('Form Error:', error);
+        }
     });
 }
 
